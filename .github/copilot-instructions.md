@@ -21,6 +21,7 @@
 - Manter cobertura de testes em 100%.
 - Os testes devem sempre ficar na pasta __tests__ dentro do mesmo diretório dos arquivos testados.
 - Usar Tailwind com tema e evitar cores hardcoded fora de contexto arquitetural aprovado.
+- Nunca importar icones diretamente nos componentes. Todo uso de icones deve ser abstraido por meio de src/ui/icons.ts.
 
 Exemplo:
 
@@ -47,3 +48,19 @@ Exemplo:
 
 
 # Sobre o projeto
+
+RPG Turbo é uma aplicação web para gerenciamento de campanhas de RPG. A aplicação permite que mestres e jogadores criem e gerenciem suas campanhas, personagens, itens, magias e outros recursos relacionados ao jogo. O objetivo do projeto é fornecer uma ferramenta fácil de usar e acessível para ajudar os jogadores a organizar suas aventuras e se divertir mais durante as sessões de jogo.
+
+Principais funcionalidades:
+- Criação e gerenciamento de campanhas
+- Criação e gerenciamento de personagens por fichas
+- Visão dos jogadores e do mestre
+- Sistema de autenticação e autorização
+- Rolagem de dados
+- chat real time entre jogadores e mestre
+- Armazenamento de recursos como imagens, mapas e outros arquivos relacionados à campanha
+- música ambiente e efeitos sonoros controlados pelo mestre
+- template de fichas personalizáveis por json
+- área de jogo com recursos visuais e interativos compartilhados realtime com ferramentas de desenho e manipulação de tokens
+- criação e listagem de campanhas
+- criação e listagem de personagens dos jogadores e npcs do mestre

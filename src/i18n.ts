@@ -6,31 +6,27 @@ const resources = {
     translation: {
       app: {
         name: 'RPG Turbo',
-      },
-      nav: {
-        home: 'Inicio',
-        about: 'Projeto',
+        loading: 'Carregando sessao...',
       },
       lang: {
         pt: 'PT',
         en: 'EN',
       },
-      home: {
-        kicker: 'Base inicial',
-        title: 'Frontend pronto para escalar com Firebase',
-        description:
-          'Projeto iniciado com Vite, React, TypeScript, Tailwind e i18n para acelerar o desenvolvimento do RPG Turbo.',
-        cardAuthTitle: 'Autenticacao',
-        cardAuthBody: 'Estrutura preparada para login por email/senha e Google.',
-        cardDbTitle: 'Realtime Database',
-        cardDbBody: 'Arquitetura pronta para sincronizar estado de personagens e salas.',
-        cardStorageTitle: 'Storage',
-        cardStorageBody: 'Upload de avatares e assets de campanha com tipagem forte.',
+      auth: {
+        title: 'Entrar na sua mesa',
+        subtitle: 'Use email e senha ou continue com Google.',
+        emailLabel: 'Email',
+        emailPlaceholder: 'voce@exemplo.com',
+        passwordLabel: 'Senha',
+        passwordPlaceholder: 'Digite sua senha',
+        signInWithEmail: 'Entrar com email',
+        signInWithGoogle: 'Entrar com Google',
+        signOut: 'Sair',
+        invalidCredentials: 'Nao foi possivel entrar com email e senha.',
+        googleSignInError: 'Nao foi possivel entrar com Google.',
       },
-      about: {
-        title: 'Arquitetura de partida',
-        description:
-          'Este bootstrap usa hash router, i18n e tema Tailwind para evoluir features sem retrabalho estrutural.',
+      campaigns: {
+        title: 'Minhas campanhas',
       },
     },
   },
@@ -38,31 +34,27 @@ const resources = {
     translation: {
       app: {
         name: 'RPG Turbo',
-      },
-      nav: {
-        home: 'Home',
-        about: 'Project',
+        loading: 'Loading session...',
       },
       lang: {
         pt: 'PT',
         en: 'EN',
       },
-      home: {
-        kicker: 'Kickstart',
-        title: 'Frontend ready to scale with Firebase',
-        description:
-          'This project starts with Vite, React, TypeScript, Tailwind, and i18n to speed up RPG Turbo development.',
-        cardAuthTitle: 'Authentication',
-        cardAuthBody: 'Foundation ready for email/password and Google sign-in.',
-        cardDbTitle: 'Realtime Database',
-        cardDbBody: 'Architecture prepared to sync character and room state in real time.',
-        cardStorageTitle: 'Storage',
-        cardStorageBody: 'Avatar and campaign asset uploads with strong typing.',
+      auth: {
+        title: 'Sign in to your table',
+        subtitle: 'Use email and password or continue with Google.',
+        emailLabel: 'Email',
+        emailPlaceholder: 'you@example.com',
+        passwordLabel: 'Password',
+        passwordPlaceholder: 'Enter your password',
+        signInWithEmail: 'Sign in with email',
+        signInWithGoogle: 'Sign in with Google',
+        signOut: 'Sign out',
+        invalidCredentials: 'Could not sign in with email and password.',
+        googleSignInError: 'Could not sign in with Google.',
       },
-      about: {
-        title: 'Starting architecture',
-        description:
-          'This bootstrap uses hash routing, i18n, and a Tailwind theme to evolve features without structural rework.',
+      campaigns: {
+        title: 'My campaigns',
       },
     },
   },
