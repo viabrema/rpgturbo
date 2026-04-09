@@ -124,4 +124,17 @@ describe('firebase services wrappers', () => {
     expect(uploadBytesMock).toHaveBeenCalledWith('avatar-ref', file)
     expect(avatarUrl).toBe('https://cdn/avatar.png')
   })
+
+  it('uploads campaign image to firebase storage', async () => {
+    refMock.mockReturnValue('campaign-image-ref')
+    getDownloadURLMock.mockResolvedValue('https://cdn/campaign.png')
+
+    const { storageService } = await import('../storageService.ts')
+    const file = new Blob(['campaign-image'], { type: 'text/plain' })
+
+    const campaignImageUrl = await storageService.uploadCampaignImage('campaign-1', file)
+
+    expect(uploadBytesMock).toHaveBeenCalledWith('campaign-image-ref', file)
+    expect(campaignImageUrl).toBe('https://cdn/campaign.png')
+  })
 })

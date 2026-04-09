@@ -14,9 +14,13 @@ const {
   signOutMock,
   registerWithEmailPasswordMock,
   registerWithGoogleMock,
-  observeInvitesMock,
-  acceptInviteMock,
-  declineInviteMock,
+  observeUserCampaignsMock,
+  observeCampaignInvitesMock,
+  searchNicknamesMock,
+  createCampaignMock,
+  updateCampaignMock,
+  getCampaignByIdMock,
+  inviteManyByNicknamesMock,
 } = vi.hoisted(() => ({
   observeAuthStateMock: vi.fn(),
   signInWithEmailPasswordMock: vi.fn(),
@@ -25,9 +29,13 @@ const {
   signOutMock: vi.fn(),
   registerWithEmailPasswordMock: vi.fn(),
   registerWithGoogleMock: vi.fn(),
-  observeInvitesMock: vi.fn(),
-  acceptInviteMock: vi.fn(),
-  declineInviteMock: vi.fn(),
+  observeUserCampaignsMock: vi.fn(),
+  observeCampaignInvitesMock: vi.fn(),
+  searchNicknamesMock: vi.fn(),
+  createCampaignMock: vi.fn(),
+  updateCampaignMock: vi.fn(),
+  getCampaignByIdMock: vi.fn(),
+  inviteManyByNicknamesMock: vi.fn(),
 }))
 
 vi.mock('../services/firebase/authService.ts', () => ({
@@ -49,9 +57,13 @@ vi.mock('../services/firebase/userProfileService.ts', () => ({
 
 vi.mock('../services/firebase/campaignService.ts', () => ({
   campaignService: {
-    observeInvites: observeInvitesMock,
-    acceptInvite: acceptInviteMock,
-    declineInvite: declineInviteMock,
+    observeUserCampaigns: observeUserCampaignsMock,
+    observeCampaignInvites: observeCampaignInvitesMock,
+    searchNicknames: searchNicknamesMock,
+    createCampaign: createCampaignMock,
+    updateCampaign: updateCampaignMock,
+    getCampaignById: getCampaignByIdMock,
+    inviteManyByNicknames: inviteManyByNicknamesMock,
   },
 }))
 
@@ -71,12 +83,19 @@ describe('App', () => {
     signOutMock.mockResolvedValue(undefined)
     registerWithEmailPasswordMock.mockResolvedValue(undefined)
     registerWithGoogleMock.mockResolvedValue(undefined)
-    observeInvitesMock.mockImplementation((_: string, onChange: (value: unknown[]) => void) => {
+    observeUserCampaignsMock.mockImplementation((_: string, onChange: (value: unknown[]) => void) => {
       onChange([])
       return vi.fn()
     })
-    acceptInviteMock.mockResolvedValue(undefined)
-    declineInviteMock.mockResolvedValue(undefined)
+    observeCampaignInvitesMock.mockImplementation((_: string, onChange: (value: unknown[]) => void) => {
+      onChange([])
+      return vi.fn()
+    })
+    searchNicknamesMock.mockResolvedValue([])
+    createCampaignMock.mockResolvedValue('campaign-1')
+    updateCampaignMock.mockResolvedValue(undefined)
+    getCampaignByIdMock.mockResolvedValue(null)
+    inviteManyByNicknamesMock.mockResolvedValue(undefined)
   })
 
   it('renders login screen as initial route when user is unauthenticated', () => {
@@ -259,44 +278,6 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Sair' }))
 
     expect(signOutMock).toHaveBeenCalled()
-  })
-
-  it('accepts and declines campaign invites from notifications popover', async () => {
-    const user = userEvent.setup()
-    observeAuthStateMock.mockImplementation(
-      (callback: (value: { uid: string; email: string } | null) => void) => {
-        callback({ uid: 'user-1', email: 'jogador@mesa.com' })
-        return vi.fn()
-      },
-    )
-    observeInvitesMock.mockImplementation((_: string, onChange: (value: unknown[]) => void) => {
-      onChange([
-        {
-          id: 'invite-1',
-          campaignId: 'campaign-1',
-          campaignName: 'Mesa de Sexta',
-          ownerUid: 'owner-1',
-          targetUid: 'user-1',
-          targetNicknameKey: 'jogador',
-          status: 'pending',
-        },
-      ])
-
-      return vi.fn()
-    })
-
-    render(
-      <MemoryRouter initialEntries={['/campaigns']}>
-        <App />
-      </MemoryRouter>,
-    )
-
-    await user.click(screen.getByRole('button', { name: 'Notificacoes' }))
-    await user.click(screen.getByRole('button', { name: 'Aceitar' }))
-    await user.click(screen.getByRole('button', { name: 'Recusar' }))
-
-    expect(acceptInviteMock).toHaveBeenCalled()
-    expect(declineInviteMock).toHaveBeenCalled()
   })
 
   it('updates store locale when switching language', async () => {

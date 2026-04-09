@@ -1,100 +1,41 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { authService } from '../../services/firebase/authService.ts'
-import { campaignService, type CampaignInvite } from '../../services/firebase/campaignService.ts'
+import { campaignService, type Campaign } from '../../services/firebase/campaignService.ts'
 import { useAppStore } from '../../store/appStore.ts'
 import { icons } from '../../ui/icons.ts'
 
 const LogoutIcon = icons.logout
-const NotificationsIcon = icons.notifications
+const AddIcon = icons.add
 
 export function CampaignListPage() {
   const { t } = useTranslation()
   const user = useAppStore((state) => state.user)
   const userUid = user?.uid ?? ''
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
-  const [invites, setInvites] = useState<CampaignInvite[]>([])
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
 
   useEffect(() => {
     if (!userUid) {
       return
     }
 
-    return campaignService.observeInvites(userUid, (nextInvites) => {
-      setInvites(nextInvites)
+    return campaignService.observeUserCampaigns(userUid, (nextCampaigns) => {
+      setCampaigns(nextCampaigns)
     })
   }, [userUid])
 
-  const pendingInvites = useMemo(
-    () => invites.filter((invite) => invite.status === 'pending'),
-    [invites],
+  const campaignCards = useMemo(
+    () =>
+      [...campaigns].sort((left, right) => right.createdAt - left.createdAt),
+    [campaigns],
   )
-
-  const handleAcceptInvite = async (invite: CampaignInvite) => {
-    await campaignService.acceptInvite(userUid, invite)
-  }
-
-  const handleDeclineInvite = async (invite: CampaignInvite) => {
-    await campaignService.declineInvite(userUid, invite)
-  }
 
   return (
     <section className='animate-rise rounded-3xl bg-surface/80 p-8 shadow-xl backdrop-blur md:p-10'>
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <h1 className='font-display text-3xl text-ink md:text-4xl'>{t('campaigns.title')}</h1>
         <div className='relative flex items-center gap-2'>
-          <button
-            type='button'
-            onClick={() => setIsPopoverOpen((value) => !value)}
-            className='relative flex h-10 w-10 items-center justify-center rounded-xl bg-white text-ink shadow-sm transition hover:bg-ink/5'
-            aria-label={t('campaigns.notifications')}
-          >
-            <NotificationsIcon aria-hidden='true' />
-            {pendingInvites.length > 0 ? (
-              <span className='absolute -right-1 -top-1 rounded-full bg-brand px-1.5 text-xs font-bold text-surface'>
-                {pendingInvites.length}
-              </span>
-            ) : null}
-          </button>
-
-          {isPopoverOpen ? (
-            <div className='absolute right-0 top-12 z-10 w-80 rounded-2xl bg-white p-3 shadow-xl'>
-              <h2 className='font-display text-lg text-ink'>{t('campaigns.notifications')}</h2>
-
-              {pendingInvites.length === 0 ? (
-                <p className='mt-2 text-sm text-ink/70'>{t('campaigns.noNotifications')}</p>
-              ) : (
-                <ul className='mt-2 space-y-2'>
-                  {pendingInvites.map((invite) => (
-                    <li key={invite.id} className='rounded-xl bg-canvas p-3'>
-                      <p className='text-sm font-semibold text-ink'>
-                        {t('campaigns.inviteMessage', {
-                          campaignName: invite.campaignName,
-                        })}
-                      </p>
-                      <div className='mt-2 flex gap-2'>
-                        <button
-                          type='button'
-                          onClick={() => void handleAcceptInvite(invite)}
-                          className='rounded-lg bg-brand px-3 py-1 text-xs font-bold text-surface'
-                        >
-                          {t('campaigns.acceptInvite')}
-                        </button>
-                        <button
-                          type='button'
-                          onClick={() => void handleDeclineInvite(invite)}
-                          className='rounded-lg bg-ink/10 px-3 py-1 text-xs font-bold text-ink'
-                        >
-                          {t('campaigns.declineInvite')}
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ) : null}
-
           <button
             type='button'
             onClick={() => void authService.signOut()}
@@ -104,6 +45,40 @@ export function CampaignListPage() {
             {t('auth.signOut')}
           </button>
         </div>
+      </div>
+
+      <div className='mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
+        <Link
+          to='/campaigns/new'
+          className='flex min-h-52 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-brand/60 bg-brand/5 p-6 text-center transition hover:bg-brand/10'
+        >
+          <span className='mb-3 rounded-full bg-brand p-4 text-surface'>
+            <AddIcon size={26} aria-hidden='true' />
+          </span>
+          <p className='font-display text-xl text-ink'>{t('campaigns.newCampaign')}</p>
+        </Link>
+
+        {campaignCards.map((campaign) => (
+          <Link
+            key={campaign.id}
+            to={`/campaigns/${campaign.id}/edit`}
+            className='group rounded-2xl bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md'
+          >
+            {campaign.imageUrl ? (
+              <img
+                src={campaign.imageUrl}
+                alt={campaign.name}
+                className='h-32 w-full rounded-xl object-cover'
+              />
+            ) : (
+              <div className='h-32 w-full rounded-xl bg-canvas' />
+            )}
+            <h2 className='mt-4 font-display text-xl text-ink'>{campaign.name}</h2>
+            <p className='mt-2 line-clamp-2 text-sm text-ink/75'>
+              {campaign.description || t('campaigns.emptyDescription')}
+            </p>
+          </Link>
+        ))}
       </div>
     </section>
   )

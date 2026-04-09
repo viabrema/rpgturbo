@@ -24,15 +24,23 @@
       "$campaignId": {
         "$uid": {
           ".read": "auth != null && root.child('campaignMembers/' + $campaignId + '/' + auth.uid + '/status').val() === 'accepted'",
-          ".write": "auth != null && (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid || ($uid === auth.uid && data.exists() && data.child('status').val() === 'pending' && newData.child('status').val() === 'accepted' && newData.child('role').val() === 'player'))"
+          ".write": "auth != null && (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid || ($uid === auth.uid && data.exists() && data.child('status').val() === 'pending' && newData.child('role').val() === 'player' && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')))"
         }
       }
     },
     "campaignInvites": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        "$inviteId": {
-          ".write": "auth != null && ((!data.exists() && root.child('campaigns/' + newData.child('campaignId').val() + '/ownerUid').val() === auth.uid && newData.child('targetUid').val() === $uid) || (data.exists() && auth.uid === $uid))"
+        "$campaignId": {
+          ".write": "auth != null && ((!data.exists() && root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && newData.child('targetUid').val() === $uid) || (data.exists() && ((auth.uid === $uid && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')) || (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && newData.child('status').val() === 'revoked'))))"
+        }
+      }
+    },
+    "campaignInvitesByCampaign": {
+      "$campaignId": {
+        "$uid": {
+          ".read": "auth != null && (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid || auth.uid === $uid)",
+          ".write": "auth != null && ((!data.exists() && root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && newData.child('targetUid').val() === $uid) || (data.exists() && ((auth.uid === $uid && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')) || (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && newData.child('status').val() === 'revoked'))))"
         }
       }
     }

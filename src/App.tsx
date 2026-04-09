@@ -6,6 +6,7 @@ import { useAppStore } from './store/appStore.ts'
 import { authService } from './services/firebase/authService.ts'
 import { LoginPage } from './features/auth/LoginPage.tsx'
 import { CampaignListPage } from './features/campaigns/CampaignListPage.tsx'
+import { CampaignEditorPage } from './features/campaigns/CampaignEditorPage.tsx'
 
 function App() {
   const { t } = useTranslation()
@@ -59,6 +60,8 @@ function App() {
           <Route path='/' element={<Navigate to={user ? '/campaigns' : '/login'} replace />} />
           <Route path='/login' element={user ? <Navigate to='/campaigns' replace /> : <LoginPage />} />
           <Route path='/campaigns' element={user ? <CampaignListPage /> : <Navigate to='/login' replace />} />
+          <Route path='/campaigns/new' element={user ? <CampaignEditorPage /> : <Navigate to='/login' replace />} />
+          <Route path='/campaigns/:campaignId/edit' element={user ? <CampaignEditorPage /> : <Navigate to='/login' replace />} />
         </Routes>
       </main>
     </div>
