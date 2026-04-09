@@ -15,10 +15,28 @@ permissions:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    env:
+      VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+      VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+      VITE_FIREBASE_DATABASE_URL: ${{ secrets.VITE_FIREBASE_DATABASE_URL }}
+      VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+      VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+      VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+      VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+      VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch }}
+      - name: Validate Firebase env vars
+        run: |
+          test -n "$VITE_FIREBASE_API_KEY" || (echo "Missing VITE_FIREBASE_API_KEY" && exit 1)
+          test -n "$VITE_FIREBASE_AUTH_DOMAIN" || (echo "Missing VITE_FIREBASE_AUTH_DOMAIN" && exit 1)
+          test -n "$VITE_FIREBASE_DATABASE_URL" || (echo "Missing VITE_FIREBASE_DATABASE_URL" && exit 1)
+          test -n "$VITE_FIREBASE_PROJECT_ID" || (echo "Missing VITE_FIREBASE_PROJECT_ID" && exit 1)
+          test -n "$VITE_FIREBASE_STORAGE_BUCKET" || (echo "Missing VITE_FIREBASE_STORAGE_BUCKET" && exit 1)
+          test -n "$VITE_FIREBASE_MESSAGING_SENDER_ID" || (echo "Missing VITE_FIREBASE_MESSAGING_SENDER_ID" && exit 1)
+          test -n "$VITE_FIREBASE_APP_ID" || (echo "Missing VITE_FIREBASE_APP_ID" && exit 1)
       - run: npm ci && npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
