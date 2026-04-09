@@ -7,6 +7,7 @@ const firebaseServicesMock = {
   googleProvider: { id: 'provider' },
 }
 
+const createUserWithEmailAndPasswordMock = vi.fn()
 const signInWithEmailAndPasswordMock = vi.fn()
 const signInWithPopupMock = vi.fn()
 const signOutMock = vi.fn()
@@ -25,6 +26,7 @@ vi.mock('../client.ts', () => ({
 }))
 
 vi.mock('firebase/auth', () => ({
+  createUserWithEmailAndPassword: createUserWithEmailAndPasswordMock,
   signInWithEmailAndPassword: signInWithEmailAndPasswordMock,
   signInWithPopup: signInWithPopupMock,
   signOut: signOutMock,
@@ -56,11 +58,17 @@ describe('firebase services wrappers', () => {
     const { authService } = await import('../authService.ts')
     const callback = vi.fn()
 
+    authService.signUpWithEmailPassword('mail@test.com', 'secret')
     authService.signInWithEmailPassword('mail@test.com', 'secret')
     authService.signInWithGoogle()
     authService.signOut()
     const receivedUnsubscribe = authService.observeAuthState(callback)
 
+    expect(createUserWithEmailAndPasswordMock).toHaveBeenCalledWith(
+      firebaseServicesMock.auth,
+      'mail@test.com',
+      'secret',
+    )
     expect(signInWithEmailAndPasswordMock).toHaveBeenCalledWith(
       firebaseServicesMock.auth,
       'mail@test.com',

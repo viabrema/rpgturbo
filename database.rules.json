@@ -1,0 +1,40 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "userProfiles": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "nicknames": {
+      "$nicknameKey": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() ? newData.val() === auth.uid : data.val() === auth.uid && newData.val() === auth.uid)"
+      }
+    },
+    "campaigns": {
+      "$campaignId": {
+        ".read": "auth != null && root.child('campaignMembers/' + $campaignId + '/' + auth.uid + '/status').val() === 'accepted'",
+        ".write": "auth != null && ((!data.exists() && newData.child('ownerUid').val() === auth.uid) || data.child('ownerUid').val() === auth.uid)"
+      }
+    },
+    "campaignMembers": {
+      "$campaignId": {
+        "$uid": {
+          ".read": "auth != null && root.child('campaignMembers/' + $campaignId + '/' + auth.uid + '/status').val() === 'accepted'",
+          ".write": "auth != null && (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid || ($uid === auth.uid && data.exists() && data.child('status').val() === 'pending' && newData.child('status').val() === 'accepted' && newData.child('role').val() === 'player'))"
+        }
+      }
+    },
+    "campaignInvites": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$inviteId": {
+          ".write": "auth != null && ((!data.exists() && root.child('campaigns/' + newData.child('campaignId').val() + '/ownerUid').val() === auth.uid && newData.child('targetUid').val() === $uid) || (data.exists() && auth.uid === $uid))"
+        }
+      }
+    }
+  }
+}
