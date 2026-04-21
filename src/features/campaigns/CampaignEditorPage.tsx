@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { campaignService, type CampaignInvite } from '../../services/firebase/campaignService.ts'
 import { storageService } from '../../services/firebase/storageService.ts'
 import { useAppStore } from '../../store/appStore.ts'
 import { CampaignImagePanel } from './CampaignImagePanel.tsx'
 import { CampaignInviteEditor } from './CampaignInviteEditor.tsx'
+import { PageHeader } from '../../ui/PageHeader.tsx'
 
 type EditorForm = {
   name: string
@@ -33,6 +34,7 @@ export function CampaignEditorPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [campaignOwnerUid, setCampaignOwnerUid] = useState<string | null>(null)
   const [inviteQuery, setInviteQuery] = useState('')
   const [inviteSuggestions, setInviteSuggestions] = useState<string[]>([])
   const [selectedNicknames, setSelectedNicknames] = useState<string[]>([])
@@ -43,6 +45,7 @@ export function CampaignEditorPage() {
       setForm(emptyForm)
       setSelectedFile(null)
       setPreviewUrl(null)
+      setCampaignOwnerUid(user?.uid ?? null)
       return
     }
 
@@ -59,8 +62,9 @@ export function CampaignEditorPage() {
         password: campaign.password ?? '',
         imageUrl: campaign.imageUrl,
       })
+      setCampaignOwnerUid(campaign.ownerUid)
     })()
-  }, [campaignId])
+  }, [campaignId, user?.uid])
 
   useEffect(
     () => () => {
@@ -109,6 +113,8 @@ export function CampaignEditorPage() {
     }))
   }
 
+  const canManageCampaign = !isEditing || (Boolean(user?.uid) && campaignOwnerUid === user?.uid)
+
   const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null
     setSelectedFile(nextFile)
@@ -123,7 +129,7 @@ export function CampaignEditorPage() {
   const handleSaveCampaign = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (!user || !form.name.trim()) {
+    if (!user || !form.name.trim() || (isEditing && !canManageCampaign)) {
       return
     }
 
@@ -188,7 +194,7 @@ export function CampaignEditorPage() {
   }
 
   const handleInvitePlayers = async () => {
-    if (!user || !campaignId || selectedNicknames.length === 0) {
+    if (!user || !campaignId || selectedNicknames.length === 0 || !canManageCampaign) {
       return
     }
 
@@ -210,19 +216,30 @@ export function CampaignEditorPage() {
 
   const imagePreviewSrc = previewUrl ?? form.imageUrl
   const imagePreviewAlt = form.name.trim() || t('campaigns.imagePreviewAlt')
+  const headerTitle = isEditing ? t('campaigns.editTitle') : t('campaigns.createTitle')
+  const campaignPath = isEditing ? `/campaigns/${campaignId as string}` : '/campaigns'
+  const breadcrumbs = isEditing
+    ? [
+        { label: t('campaigns.title'), to: '/campaigns' },
+        { label: form.name.trim() || t('campaigns.viewTitle'), to: campaignPath },
+        { label: t('campaigns.editTitle') },
+      ]
+    : [{ label: t('campaigns.title'), to: '/campaigns' }, { label: t('campaigns.createTitle') }]
 
   return (
     <section className='animate-rise rounded-3xl bg-surface/80 p-8 shadow-xl backdrop-blur md:p-10'>
-      <div className='flex items-center justify-between gap-4'>
-        <h1 className='font-display text-3xl text-ink md:text-4xl'>
-          {isEditing ? t('campaigns.editTitle') : t('campaigns.createTitle')}
-        </h1>
-        <Link to='/campaigns' className='rounded-lg bg-ink/10 px-3 py-2 text-sm font-bold text-ink'>
-          {t('campaigns.backToList')}
-        </Link>
-      </div>
+      <PageHeader
+        title={headerTitle}
+        backTo={campaignPath}
+        backLabel={t('navigation.back')}
+        breadcrumbs={breadcrumbs}
+      />
 
       <form onSubmit={handleSaveCampaign} className='mt-6 space-y-4'>
+        {isEditing && !canManageCampaign ? (
+          <p className='rounded-xl bg-ink/5 px-3 py-2 text-sm text-ink/80'>{t('campaigns.ownerOnlyEditNotice')}</p>
+        ) : null}
+
         <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem] xl:grid-cols-[minmax(0,1fr)_17rem]'>
           <div className='space-y-4'>
             <label className='block'>
@@ -233,6 +250,7 @@ export function CampaignEditorPage() {
                 value={form.name}
                 onChange={(event) => updateField('name', event.target.value)}
                 className='w-full rounded-xl border border-ink/10 bg-white px-4 py-2 text-ink outline-none ring-brand/40 focus:ring'
+                disabled={!canManageCampaign}
                 required
               />
             </label>
@@ -245,6 +263,7 @@ export function CampaignEditorPage() {
                 value={form.description}
                 onChange={(event) => updateField('description', event.target.value)}
                 className='w-full rounded-xl border border-ink/10 bg-white px-4 py-2 text-ink outline-none ring-brand/40 focus:ring'
+                disabled={!canManageCampaign}
                 rows={4}
               />
             </label>
@@ -258,6 +277,7 @@ export function CampaignEditorPage() {
                 value={form.password}
                 onChange={(event) => updateField('password', event.target.value)}
                 className='w-full rounded-xl border border-ink/10 bg-white px-4 py-2 text-ink outline-none ring-brand/40 focus:ring'
+                disabled={!canManageCampaign}
               />
             </label>
           </div>
@@ -268,20 +288,23 @@ export function CampaignEditorPage() {
             placeholderText={t('campaigns.imagePlaceholder')}
             previewSrc={imagePreviewSrc}
             previewAlt={imagePreviewAlt}
+            disabled={!canManageCampaign}
             onSelectImage={handleImageSelect}
           />
         </div>
 
-        <button
-          type='submit'
-          disabled={isSaving}
-          className='rounded-xl bg-brand px-4 py-2 font-bold text-surface transition hover:brightness-110 disabled:opacity-70'
-        >
-          {isEditing ? t('campaigns.form.save') : t('campaigns.form.create')}
-        </button>
+        {canManageCampaign ? (
+          <button
+            type='submit'
+            disabled={isSaving}
+            className='rounded-xl bg-brand px-4 py-2 font-bold text-surface transition hover:brightness-110 disabled:opacity-70'
+          >
+            {isEditing ? t('campaigns.form.save') : t('campaigns.form.create')}
+          </button>
+        ) : null}
       </form>
 
-      {isEditing ? (
+      {isEditing && canManageCampaign ? (
         <CampaignInviteEditor
           inviteQuery={inviteQuery}
           inviteSuggestions={inviteSuggestions}

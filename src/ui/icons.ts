@@ -1,6 +1,7 @@
 import type { IconType } from 'react-icons'
 import { FcGoogle } from 'react-icons/fc'
 import { MdAdd } from 'react-icons/md'
+import { MdArrowBack } from 'react-icons/md'
 import { MdClose } from 'react-icons/md'
 import { MdEmail } from 'react-icons/md'
 import { RiNotification3Line } from 'react-icons/ri'
@@ -8,7 +9,7 @@ import { RiLogoutBoxRLine } from 'react-icons/ri'
 import { RiUserUnfollowLine } from 'react-icons/ri'
 
 export const icons: Record<
-  'google' | 'email' | 'logout' | 'notifications' | 'add' | 'close' | 'removeUser',
+  'google' | 'email' | 'logout' | 'notifications' | 'add' | 'close' | 'removeUser' | 'back',
   IconType
 > = {
   google: FcGoogle,
@@ -18,4 +19,5 @@ export const icons: Record<
   add: MdAdd,
   close: MdClose,
   removeUser: RiUserUnfollowLine,
+  back: MdArrowBack,
 }

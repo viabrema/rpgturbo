@@ -4,7 +4,6 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CampaignEditorPage } from '../CampaignEditorPage.tsx'
 import { useAppStore } from '../../../store/appStore.ts'
-
 const {
   createCampaignMock,
   updateCampaignMock,
@@ -55,8 +54,7 @@ describe('CampaignEditorPage', () => {
       createObjectURL: createObjectURLMock,
       revokeObjectURL: revokeObjectURLMock,
     })
-    createObjectURLMock.mockReturnValue('blob:campaign-preview')
-    useAppStore.setState({ user: { uid: 'owner-1', email: 'owner@test.com' } })
+    createObjectURLMock.mockReturnValue('blob:campaign-preview'); useAppStore.setState({ user: { uid: 'owner-1', email: 'owner@test.com' } })
     createCampaignMock.mockResolvedValue('campaign-1')
     updateCampaignMock.mockResolvedValue(undefined)
     getCampaignByIdMock.mockResolvedValue(null)
@@ -163,7 +161,8 @@ describe('CampaignEditorPage', () => {
     })
     expect(screen.getByRole('img', { name: 'Mesa Beta' })).toBeInTheDocument()
 
-    await user.type(screen.getByLabelText('Convidar jogador por nickname'), 'Jo')
+    const inviteInput = await screen.findByLabelText('Convidar jogador por nickname')
+    await user.type(inviteInput, 'Jo')
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Jogador2' })).toBeInTheDocument()
     })
@@ -173,7 +172,7 @@ describe('CampaignEditorPage', () => {
     await user.click(screen.getByRole('button', { name: 'Convidar' }))
     expect(inviteManyByNicknamesMock).not.toHaveBeenCalled()
 
-    await user.type(screen.getByLabelText('Convidar jogador por nickname'), 'Jo')
+    await user.type(inviteInput, 'Jo')
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Jogador2' })).toBeInTheDocument()
     })
@@ -239,7 +238,15 @@ describe('CampaignEditorPage', () => {
 
   it('handles edit mode without loaded campaign, validates empty name and avoids duplicate nickname', async () => {
     const user = userEvent.setup()
-    getCampaignByIdMock.mockResolvedValue(null)
+    getCampaignByIdMock.mockResolvedValue({
+      id: 'campaign-1',
+      ownerUid: 'owner-1',
+      name: 'Mesa Edicao',
+      description: '',
+      imageUrl: null,
+      password: null,
+      createdAt: 1,
+    })
     searchNicknamesMock.mockResolvedValue(['Jogador2'])
 
     render(
@@ -250,8 +257,7 @@ describe('CampaignEditorPage', () => {
       </MemoryRouter>,
     )
 
-    const nameInput = screen.getByLabelText('Nome da campanha')
-    await user.type(nameInput, 'Mesa Edicao')
+    const nameInput = await screen.findByLabelText('Nome da campanha')
     await user.clear(nameInput)
     await user.click(screen.getByRole('button', { name: 'Salvar campanha' }))
     expect(updateCampaignMock).not.toHaveBeenCalled()
@@ -294,6 +300,16 @@ describe('CampaignEditorPage', () => {
 
   it('cancels nickname suggestion state update on unmount', async () => {
     const user = userEvent.setup()
+    useAppStore.setState({ user: { uid: 'owner-1', email: 'owner@test.com' } })
+    getCampaignByIdMock.mockResolvedValue({
+      id: 'campaign-1',
+      ownerUid: 'owner-1',
+      name: 'Mesa Dono',
+      description: '',
+      imageUrl: null,
+      password: null,
+      createdAt: 1,
+    })
     let resolveSuggestions: ((value: string[]) => void) | undefined
     searchNicknamesMock.mockImplementation(
       () =>
@@ -310,13 +326,12 @@ describe('CampaignEditorPage', () => {
       </MemoryRouter>,
     )
 
-    await user.type(screen.getByLabelText('Convidar jogador por nickname'), 'Jo')
+    await user.type(await screen.findByLabelText('Convidar jogador por nickname'), 'Jo')
     unmount()
     if (resolveSuggestions) {
       resolveSuggestions(['Jogador2'])
     }
     await Promise.resolve()
-
     expect(searchNicknamesMock).toHaveBeenCalledWith('Jo')
   })
 })

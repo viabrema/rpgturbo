@@ -85,6 +85,20 @@ const mapInvites = (value: unknown): CampaignInvite[] => {
   }))
 }
 
+const mapAcceptedMembershipCampaignIds = (value: unknown, userUid: string): Set<string> => {
+  if (!value || typeof value !== 'object') {
+    return new Set<string>()
+  }
+
+  return Object.entries(value as Record<string, Record<string, { status?: string }>>).reduce((accumulator, [campaignId, members]) => {
+    if (members?.[userUid]?.status === 'accepted') {
+      accumulator.add(campaignId)
+    }
+
+    return accumulator
+  }, new Set<string>())
+}
+
 const createInvitePayload = (input: {
   campaignId: string
   campaignName: string
@@ -126,6 +140,15 @@ const readUserByNickname = async (
     nickname: profile.nickname,
     nicknameKey,
   }
+}
+
+const hasPendingOrAcceptedStatus = (value: unknown): boolean => {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const status = (value as { status?: string }).status
+  return status === 'pending' || status === 'accepted'
 }
 
 const mapNicknameSuggestions = async (value: unknown): Promise<string[]> => {
@@ -197,11 +220,31 @@ export const campaignService = {
     }
   },
   observeUserCampaigns(userUid: string, onChange: (campaigns: Campaign[]) => void): Unsubscribe {
-    return onValue(ref(firebaseServices.database, campaignsPath), (snapshot) => {
-      const campaigns = mapCampaigns(snapshot.val()).filter((campaign) => campaign.ownerUid === userUid)
+    let campaigns: Campaign[] = []
+    let acceptedCampaignIds = new Set<string>()
 
-      onChange(campaigns)
+    const emit = () => {
+      const visibleCampaigns = campaigns.filter(
+        (campaign) => campaign.ownerUid === userUid || acceptedCampaignIds.has(campaign.id),
+      )
+
+      onChange(visibleCampaigns)
+    }
+
+    const campaignsUnsubscribe = onValue(ref(firebaseServices.database, campaignsPath), (snapshot) => {
+      campaigns = mapCampaigns(snapshot.val())
+      emit()
     })
+
+    const membersUnsubscribe = onValue(ref(firebaseServices.database, campaignMembersPath), (snapshot) => {
+      acceptedCampaignIds = mapAcceptedMembershipCampaignIds(snapshot.val(), userUid)
+      emit()
+    })
+
+    return () => {
+      campaignsUnsubscribe()
+      membersUnsubscribe()
+    }
   },
   async searchNicknames(search: string): Promise<string[]> {
     const searchKey = normalizeNickname(search)
@@ -223,6 +266,18 @@ export const campaignService = {
   },
   async inviteByNickname({ ownerUid, campaignId, campaignName, targetNickname }: InviteByNicknameParams): Promise<void> {
     const targetUser = await readUserByNickname(targetNickname)
+    const existingInviteSnapshot = await get(ref(firebaseServices.database, `${campaignInvitesByCampaignPath}/${campaignId}/${targetUser.uid}`))
+
+    if (hasPendingOrAcceptedStatus(existingInviteSnapshot.val())) {
+      throw new Error('invite-already-exists')
+    }
+
+    const existingMemberSnapshot = await get(ref(firebaseServices.database, `${campaignMembersPath}/${campaignId}/${targetUser.uid}`))
+
+    if (hasPendingOrAcceptedStatus(existingMemberSnapshot.val())) {
+      throw new Error('member-already-in-campaign')
+    }
+
     const invitePayload = createInvitePayload({
       campaignId,
       campaignName,
@@ -266,7 +321,7 @@ export const campaignService = {
   },
   async acceptInvite(userUid: string, invite: CampaignInvite): Promise<void> {
     await update(ref(firebaseServices.database), {
-      [`${campaignInvitesPath}/${userUid}/${invite.id}/status`]: 'accepted',
+      [`${campaignInvitesPath}/${userUid}/${invite.campaignId}/status`]: 'accepted',
       [`${campaignInvitesByCampaignPath}/${invite.campaignId}/${userUid}/status`]: 'accepted',
       [`${campaignMembersPath}/${invite.campaignId}/${userUid}/status`]: 'accepted',
       [`${campaignMembersPath}/${invite.campaignId}/${userUid}/role`]: 'player',
@@ -274,7 +329,7 @@ export const campaignService = {
   },
   async declineInvite(userUid: string, invite: CampaignInvite): Promise<void> {
     await update(ref(firebaseServices.database), {
-      [`${campaignInvitesPath}/${userUid}/${invite.id}/status`]: 'declined',
+      [`${campaignInvitesPath}/${userUid}/${invite.campaignId}/status`]: 'declined',
       [`${campaignInvitesByCampaignPath}/${invite.campaignId}/${userUid}/status`]: 'declined',
       [`${campaignMembersPath}/${invite.campaignId}/${userUid}/status`]: 'declined',
     })
@@ -282,8 +337,8 @@ export const campaignService = {
   async removeMember(campaignId: string, targetUid: string): Promise<void> {
     await update(ref(firebaseServices.database), {
       [`${campaignMembersPath}/${campaignId}/${targetUid}`]: null,
-      [`${campaignInvitesPath}/${targetUid}/${campaignId}/status`]: 'revoked',
-      [`${campaignInvitesByCampaignPath}/${campaignId}/${targetUid}/status`]: 'revoked',
+      [`${campaignInvitesPath}/${targetUid}/${campaignId}`]: null,
+      [`${campaignInvitesByCampaignPath}/${campaignId}/${targetUid}`]: null,
     })
   },
 }

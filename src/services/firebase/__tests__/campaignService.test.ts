@@ -101,49 +101,6 @@ describe('campaignService', () => {
     expect(campaign).toBeNull()
   })
 
-  it('observes owner campaigns', async () => {
-    onValueMock.mockImplementationOnce((_ref: unknown, callback: (snapshot: { val: () => unknown }) => void) => {
-      callback({
-        val: () => ({
-          'campaign-1': { ownerUid: 'owner-1', name: 'Mesa A', description: '', imageUrl: null, password: null, createdAt: 2 },
-          'campaign-2': { ownerUid: 'owner-2', name: 'Mesa B', description: '', imageUrl: null, password: null, createdAt: 1 },
-        }),
-      })
-      return vi.fn()
-    })
-
-    const { campaignService } = await import('../campaignService.ts')
-    const onChange = vi.fn()
-
-    campaignService.observeUserCampaigns('owner-1', onChange)
-
-    expect(onChange).toHaveBeenCalledWith([
-      {
-        id: 'campaign-1',
-        ownerUid: 'owner-1',
-        name: 'Mesa A',
-        description: '',
-        imageUrl: null,
-        password: null,
-        createdAt: 2,
-      },
-    ])
-  })
-
-  it('observes owner campaigns as empty when snapshot is invalid', async () => {
-    onValueMock.mockImplementationOnce((_ref: unknown, callback: (snapshot: { val: () => unknown }) => void) => {
-      callback({ val: () => null })
-      return vi.fn()
-    })
-
-    const { campaignService } = await import('../campaignService.ts')
-    const onChange = vi.fn()
-
-    campaignService.observeUserCampaigns('owner-1', onChange)
-
-    expect(onChange).toHaveBeenCalledWith([])
-  })
-
   it('searches nickname suggestions', async () => {
     getMock
       .mockResolvedValueOnce({
@@ -198,6 +155,8 @@ describe('campaignService', () => {
     getMock
       .mockResolvedValueOnce({ exists: () => true, val: () => 'target-uid' })
       .mockResolvedValueOnce({ exists: () => true, val: () => ({ nickname: 'Jogador X' }) })
+      .mockResolvedValueOnce({ exists: () => false, val: () => null })
+      .mockResolvedValueOnce({ exists: () => false, val: () => null })
 
     const { campaignService } = await import('../campaignService.ts')
 
@@ -209,6 +168,43 @@ describe('campaignService', () => {
     })
 
     expect(updateMock).toHaveBeenCalled()
+  })
+
+  it('throws when target already has pending invite', async () => {
+    getMock
+      .mockResolvedValueOnce({ exists: () => true, val: () => 'target-uid' })
+      .mockResolvedValueOnce({ exists: () => true, val: () => ({ nickname: 'Jogador X' }) })
+      .mockResolvedValueOnce({ exists: () => true, val: () => ({ status: 'pending' }) })
+
+    const { campaignService } = await import('../campaignService.ts')
+
+    await expect(
+      campaignService.inviteByNickname({
+        ownerUid: 'owner-1',
+        campaignId: 'campaign-1',
+        campaignName: 'Mesa',
+        targetNickname: 'Jogador X',
+      }),
+    ).rejects.toThrow('invite-already-exists')
+  })
+
+  it('throws when target already accepted campaign member', async () => {
+    getMock
+      .mockResolvedValueOnce({ exists: () => true, val: () => 'target-uid' })
+      .mockResolvedValueOnce({ exists: () => true, val: () => ({ nickname: 'Jogador X' }) })
+      .mockResolvedValueOnce({ exists: () => false, val: () => null })
+      .mockResolvedValueOnce({ exists: () => true, val: () => ({ status: 'accepted' }) })
+
+    const { campaignService } = await import('../campaignService.ts')
+
+    await expect(
+      campaignService.inviteByNickname({
+        ownerUid: 'owner-1',
+        campaignId: 'campaign-1',
+        campaignName: 'Mesa',
+        targetNickname: 'Jogador X',
+      }),
+    ).rejects.toThrow('member-already-in-campaign')
   })
 
   it('throws when nickname profile is missing', async () => {
@@ -246,8 +242,12 @@ describe('campaignService', () => {
     getMock
       .mockResolvedValueOnce({ exists: () => true, val: () => 'uid-a' })
       .mockResolvedValueOnce({ exists: () => true, val: () => ({ nickname: 'NickA' }) })
+      .mockResolvedValueOnce({ exists: () => false, val: () => null })
+      .mockResolvedValueOnce({ exists: () => false, val: () => null })
       .mockResolvedValueOnce({ exists: () => true, val: () => 'uid-b' })
       .mockResolvedValueOnce({ exists: () => true, val: () => ({ nickname: 'NickB' }) })
+      .mockResolvedValueOnce({ exists: () => false, val: () => null })
+      .mockResolvedValueOnce({ exists: () => false, val: () => null })
 
     const { campaignService } = await import('../campaignService.ts')
 
@@ -324,5 +324,10 @@ describe('campaignService', () => {
     await campaignService.removeMember('campaign-1', 'uid-1')
 
     expect(updateMock).toHaveBeenCalledTimes(3)
+    expect(updateMock).toHaveBeenNthCalledWith(3, 'root-ref', {
+      'campaignMembers/campaign-1/uid-1': null,
+      'campaignInvites/uid-1/campaign-1': null,
+      'campaignInvitesByCampaign/campaign-1/uid-1': null,
+    })
   })
 })

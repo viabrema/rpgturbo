@@ -7,6 +7,7 @@ type CampaignImagePanelProps = {
   placeholderText: string
   previewSrc: string | null
   previewAlt: string
+  disabled: boolean
   onSelectImage: (event: ChangeEvent<HTMLInputElement>) => void
 }
 
@@ -16,13 +17,14 @@ export function CampaignImagePanel({
   placeholderText,
   previewSrc,
   previewAlt,
+  disabled,
   onSelectImage,
 }: CampaignImagePanelProps) {
   const inputId = useId()
 
   return (
     <div className='rounded-xl border border-ink/20 bg-canvas p-3'>
-      <label htmlFor={inputId} className='block cursor-pointer'>
+      <label htmlFor={inputId} className={`block ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
         <div className='relative aspect-square w-full overflow-hidden rounded-lg border border-ink/20 bg-surface/80 transition hover:brightness-95'>
           {previewSrc ? (
             <img src={previewSrc} alt={previewAlt} className='h-full w-full object-cover' />
@@ -38,6 +40,7 @@ export function CampaignImagePanel({
         type='file'
         accept='image/*'
         onChange={onSelectImage}
+        disabled={disabled}
         className='sr-only'
         aria-label={imageLabel}
         data-testid='campaign-image-input'

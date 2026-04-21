@@ -54,7 +54,7 @@ export function LoginPage() {
   }
 
   return (
-    <section className='animate-rise mx-auto w-full max-w-md rounded-3xl bg-surface/80 p-8 shadow-xl backdrop-blur'>
+    <section className='animate-rise w-full max-w-sm rounded-3xl bg-surface/70 p-7 shadow-xl backdrop-blur'>
       <h1 className='font-display text-3xl text-ink'>{t('auth.title')}</h1>
       <p className='mt-2 text-sm text-ink/80'>{t('auth.subtitle')}</p>
 

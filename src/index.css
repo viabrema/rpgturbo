@@ -23,6 +23,17 @@ body {
     var(--color-canvas);
 }
 
+.login-shell {
+  background-color: var(--color-canvas);
+  background-image:
+    url('./assets/login-background.png'),
+    radial-gradient(circle at 15% 20%, oklch(0.92 0.08 205 / 70%), transparent 45%),
+    radial-gradient(circle at 90% 10%, oklch(0.94 0.09 80 / 70%), transparent 35%);
+  background-position: center, 15% 20%, 90% 10%;
+  background-size: cover, auto, auto;
+  background-repeat: no-repeat;
+}
+
 #root {
   min-height: 100vh;
 }

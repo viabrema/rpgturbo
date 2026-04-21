@@ -14,6 +14,7 @@ const {
   signOutMock,
   registerWithEmailPasswordMock,
   registerWithGoogleMock,
+  observeInvitesMock,
   observeUserCampaignsMock,
   observeCampaignInvitesMock,
   searchNicknamesMock,
@@ -29,6 +30,7 @@ const {
   signOutMock: vi.fn(),
   registerWithEmailPasswordMock: vi.fn(),
   registerWithGoogleMock: vi.fn(),
+  observeInvitesMock: vi.fn(),
   observeUserCampaignsMock: vi.fn(),
   observeCampaignInvitesMock: vi.fn(),
   searchNicknamesMock: vi.fn(),
@@ -57,6 +59,7 @@ vi.mock('../services/firebase/userProfileService.ts', () => ({
 
 vi.mock('../services/firebase/campaignService.ts', () => ({
   campaignService: {
+    observeInvites: observeInvitesMock,
     observeUserCampaigns: observeUserCampaignsMock,
     observeCampaignInvites: observeCampaignInvitesMock,
     searchNicknames: searchNicknamesMock,
@@ -83,6 +86,10 @@ describe('App', () => {
     signOutMock.mockResolvedValue(undefined)
     registerWithEmailPasswordMock.mockResolvedValue(undefined)
     registerWithGoogleMock.mockResolvedValue(undefined)
+    observeInvitesMock.mockImplementation((_: string, onChange: (value: unknown[]) => void) => {
+      onChange([])
+      return vi.fn()
+    })
     observeUserCampaignsMock.mockImplementation((_: string, onChange: (value: unknown[]) => void) => {
       onChange([])
       return vi.fn()
@@ -282,9 +289,15 @@ describe('App', () => {
 
   it('updates store locale when switching language', async () => {
     const user = userEvent.setup()
+    observeAuthStateMock.mockImplementation(
+      (callback: (value: { uid: string; email: string } | null) => void) => {
+        callback({ uid: 'owner-1', email: 'owner@mesa.com' })
+        return vi.fn()
+      },
+    )
 
     render(
-      <MemoryRouter initialEntries={['/login']}>
+      <MemoryRouter initialEntries={['/']}>
         <App />
       </MemoryRouter>,
     )
