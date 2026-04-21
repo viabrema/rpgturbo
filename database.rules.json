@@ -16,14 +16,14 @@
     },
     "campaigns": {
       "$campaignId": {
-        ".read": "auth != null && root.child('campaignMembers/' + $campaignId + '/' + auth.uid + '/status').val() === 'accepted'",
+        ".read": "auth != null && (data.child('ownerUid').val() === auth.uid || root.child('campaignMembers/' + $campaignId + '/' + auth.uid + '/status').val() === 'accepted')",
         ".write": "auth != null && ((!data.exists() && newData.child('ownerUid').val() === auth.uid) || data.child('ownerUid').val() === auth.uid)"
       }
     },
     "campaignMembers": {
       "$campaignId": {
         "$uid": {
-          ".read": "auth != null && root.child('campaignMembers/' + $campaignId + '/' + auth.uid + '/status').val() === 'accepted'",
+          ".read": "auth != null && (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid || root.child('campaignMembers/' + $campaignId + '/' + auth.uid + '/status').val() === 'accepted')",
           ".write": "auth != null && (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid || ($uid === auth.uid && data.exists() && data.child('status').val() === 'pending' && newData.child('role').val() === 'player' && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')))"
         }
       }
@@ -32,7 +32,7 @@
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         "$campaignId": {
-          ".write": "auth != null && ((!data.exists() && root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && newData.child('targetUid').val() === $uid) || (data.exists() && ((auth.uid === $uid && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')) || (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && (newData.val() === null || newData.child('status').val() === 'revoked')))))"
+          ".write": "auth != null && ((!data.exists() && root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && newData.child('targetUid').val() === $uid && newData.child('ownerUid').val() === auth.uid) || (data.exists() && ((auth.uid === $uid && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')) || (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && (newData.val() === null || newData.child('status').val() === 'revoked')))))"
         }
       }
     },
@@ -40,7 +40,7 @@
       "$campaignId": {
         "$uid": {
           ".read": "auth != null && (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid || auth.uid === $uid)",
-          ".write": "auth != null && ((!data.exists() && root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && newData.child('targetUid').val() === $uid) || (data.exists() && ((auth.uid === $uid && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')) || (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && (newData.val() === null || newData.child('status').val() === 'revoked')))))"
+          ".write": "auth != null && ((!data.exists() && root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && newData.child('targetUid').val() === $uid && newData.child('ownerUid').val() === auth.uid) || (data.exists() && ((auth.uid === $uid && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')) || (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid && (newData.val() === null || newData.child('status').val() === 'revoked')))))"
         }
       }
     }
