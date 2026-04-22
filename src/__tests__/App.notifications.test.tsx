@@ -48,6 +48,7 @@ vi.mock('../services/firebase/userProfileService.ts', () => ({
   userProfileService: {
     registerWithEmailPassword: vi.fn(),
     registerWithGoogle: vi.fn(),
+    getProfileByUid: vi.fn().mockResolvedValue(null),
   },
 }))
 
@@ -115,8 +116,8 @@ describe('App notifications', () => {
   it('shows empty notifications state in header', async () => {
     const user = userEvent.setup()
     observeAuthStateMock.mockImplementation(
-      (callback: (value: { uid: string; email: string } | null) => void) => {
-        callback({ uid: 'user-2', email: 'jogador@mesa.com' })
+      (callback: (value: { uid: string; email: string | null } | null) => void) => {
+        callback({ uid: 'user-2', email: null })
         return vi.fn()
       },
     )

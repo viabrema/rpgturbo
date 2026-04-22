@@ -3,32 +3,43 @@ import type { CampaignInvite } from '../services/firebase/campaignService.ts'
 import { icons } from './icons.ts'
 import { LanguageSwitch } from './LanguageSwitch.tsx'
 
-const LogoutIcon = icons.logout
 const NotificationsIcon = icons.notifications
 
 type AppHeaderProps = {
   appName: string
   showUserActions: boolean
+  userName?: string | null
+  userEmail?: string | null
   pendingInvites?: CampaignInvite[]
-  isPopoverOpen?: boolean
-  onTogglePopover?: () => void
+  isNotificationsOpen?: boolean
+  isUserMenuOpen?: boolean
+  onToggleNotifications?: () => void
+  onToggleUserMenu?: () => void
   onAcceptInvite?: (invite: CampaignInvite) => void
   onDeclineInvite?: (invite: CampaignInvite) => void
+  onProfile?: () => void
   onSignOut?: () => void
 }
 
 export function AppHeader({
   appName,
   showUserActions,
+  userName,
+  userEmail,
   pendingInvites,
-  isPopoverOpen,
-  onTogglePopover,
+  isNotificationsOpen,
+  isUserMenuOpen,
+  onToggleNotifications,
+  onToggleUserMenu,
   onAcceptInvite,
   onDeclineInvite,
+  onProfile,
   onSignOut,
 }: AppHeaderProps) {
   const { t } = useTranslation()
   const safePendingInvites = pendingInvites ?? []
+  const displayName = userName || userEmail || t('user.initialFallback')
+  const initial = displayName.trim().slice(0, 1).toUpperCase()
 
   return (
     <header className='flex items-center justify-between gap-4'>
@@ -39,7 +50,7 @@ export function AppHeader({
           <div className='relative flex items-center gap-2'>
             <button
               type='button'
-              onClick={onTogglePopover}
+              onClick={onToggleNotifications}
               className='relative flex h-10 w-10 items-center justify-center rounded-xl bg-white text-ink shadow-sm transition hover:bg-ink/5'
               aria-label={t('campaigns.notifications')}
             >
@@ -51,7 +62,7 @@ export function AppHeader({
               ) : null}
             </button>
 
-            {isPopoverOpen ? (
+            {isNotificationsOpen ? (
               <div className='absolute right-0 top-12 z-10 w-80 rounded-2xl bg-white p-3 shadow-xl'>
                 <h2 className='font-display text-lg text-ink'>{t('campaigns.notifications')}</h2>
 
@@ -91,12 +102,34 @@ export function AppHeader({
 
             <button
               type='button'
-              onClick={onSignOut}
-              className='flex items-center gap-2 rounded-xl bg-ink px-4 py-2 font-bold text-surface transition hover:brightness-110'
+              onClick={onToggleUserMenu}
+              className='flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-semibold text-ink shadow-sm transition hover:bg-ink/5'
+              aria-label={t('user.menuLabel')}
             >
-              <LogoutIcon aria-hidden='true' />
-              {t('auth.signOut')}
+              {initial}
             </button>
+
+            {isUserMenuOpen ? (
+              <div className='absolute right-0 top-12 z-10 w-64 rounded-2xl bg-white p-3 shadow-xl'>
+                <p className='font-display text-lg text-ink'>{displayName}</p>
+                <div className='mt-3 space-y-2'>
+                  <button
+                    type='button'
+                    onClick={onProfile}
+                    className='w-full rounded-lg bg-ink/5 px-3 py-2 text-left text-sm font-semibold text-ink transition hover:bg-ink/10'
+                  >
+                    {t('user.profile')}
+                  </button>
+                  <button
+                    type='button'
+                    onClick={onSignOut}
+                    className='w-full rounded-lg bg-ink/90 px-3 py-2 text-left text-sm font-semibold text-surface transition hover:brightness-110'
+                  >
+                    {t('auth.signOut')}
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

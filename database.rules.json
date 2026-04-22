@@ -8,6 +8,12 @@
         ".write": "auth != null && auth.uid === $uid"
       }
     },
+    "userProfilesPublic": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
     "nicknames": {
       "$nicknameKey": {
         ".read": "auth != null",
@@ -24,7 +30,16 @@
       "$campaignId": {
         "$uid": {
           ".read": "auth != null && (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid || root.child('campaignMembers/' + $campaignId + '/' + auth.uid + '/status').val() === 'accepted')",
-          ".write": "auth != null && (root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid || ($uid === auth.uid && data.exists() && data.child('status').val() === 'pending' && newData.child('role').val() === 'player' && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')))"
+          ".write": "auth != null && ((auth.uid === $uid && !data.exists() && newData.child('role').val() === 'owner' && newData.child('status').val() === 'accepted') || root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid || ($uid === auth.uid && data.exists() && data.child('status').val() === 'pending' && newData.child('role').val() === 'player' && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')))"
+        }
+      }
+    },
+    "campaignMembershipsByUser": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$campaignId": {
+          ".write": "auth != null && ((auth.uid === $uid && !data.exists() && newData.child('role').val() === 'owner' && newData.child('status').val() === 'accepted') || root.child('campaigns/' + $campaignId + '/ownerUid').val() === auth.uid || ($uid === auth.uid && data.exists() && data.child('status').val() === 'pending' && newData.child('role').val() === 'player' && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')))",
+          ".validate": "newData.val() === null || (newData.hasChildren(['status','role']) && (newData.child('status').val() === 'pending' || newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined') && (newData.child('role').val() === 'owner' || newData.child('role').val() === 'player'))"
         }
       }
     },

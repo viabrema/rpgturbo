@@ -1,4 +1,4 @@
-import { get, ref, runTransaction, set } from 'firebase/database'
+import { get, ref, runTransaction, update } from 'firebase/database'
 import { authService } from './authService.ts'
 import { firebaseServices } from './client.ts'
 
@@ -16,6 +16,7 @@ type RegistrationInput = {
 }
 
 const userProfilesPath = 'userProfiles'
+const userProfilesPublicPath = 'userProfilesPublic'
 const nicknamesPath = 'nicknames'
 
 export const normalizeNickname = (nickname: string): string =>
@@ -41,7 +42,13 @@ const reserveNickname = async (uid: string, nickname: string): Promise<string> =
 }
 
 const saveUserProfile = (profile: UserProfile) =>
-  set(ref(firebaseServices.database, `${userProfilesPath}/${profile.uid}`), profile)
+  update(ref(firebaseServices.database), {
+    [`${userProfilesPath}/${profile.uid}`]: profile,
+    [`${userProfilesPublicPath}/${profile.uid}`]: {
+      nickname: profile.nickname,
+      nicknameKey: profile.nicknameKey,
+    },
+  })
 
 export const userProfileService = {
   normalizeNickname,

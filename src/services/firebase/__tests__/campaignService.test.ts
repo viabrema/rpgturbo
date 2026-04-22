@@ -328,6 +328,7 @@ describe('campaignService', () => {
       'campaignMembers/campaign-1/uid-1': null,
       'campaignInvites/uid-1/campaign-1': null,
       'campaignInvitesByCampaign/campaign-1/uid-1': null,
+      'campaignMembershipsByUser/uid-1/campaign-1': null,
     })
   })
 })

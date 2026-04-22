@@ -1,40 +1,22 @@
-import {
-  endAt,
-  get,
-  limitToFirst,
-  onValue,
-  orderByKey,
-  push,
-  query,
-  ref,
-  update,
-  startAt,
-  type Unsubscribe,
-} from 'firebase/database'
+import { endAt, get, limitToFirst, onValue, orderByKey, push, query, ref, update, startAt, type Unsubscribe } from 'firebase/database'
 import { firebaseServices } from './client.ts'
+import type { Campaign, CampaignInvite } from './campaignTypes'
 import { normalizeNickname } from './userProfileService.ts'
-
-export type Campaign = {
-  id: string
-  ownerUid: string
-  name: string
-  description: string
-  imageUrl: string | null
-  password: string | null
-  createdAt: number
-}
-
-export type CampaignInvite = {
-  id: string
-  campaignId: string
-  campaignName: string
-  ownerUid: string
-  targetUid: string
-  targetNickname: string
-  targetNicknameKey: string
-  status: 'pending' | 'accepted' | 'declined' | 'revoked'
-}
-
+import {
+  campaignsPath,
+  campaignInvitesByCampaignPath,
+  campaignInvitesPath,
+  campaignMembersPath,
+  campaignMembershipsByUserPath,
+  createInvitePayload,
+  fetchCampaignById,
+  hasPendingOrAcceptedStatus,
+  mapInvites,
+  mapMembershipsByCampaign,
+  mapNicknameSuggestions,
+  nicknamesPath,
+  readUserByNickname,
+} from './campaignService.helpers.ts'
 type CampaignPayload = {
   name: string
   description: string
@@ -56,123 +38,7 @@ type InviteManyParams = {
   nicknames: string[]
 }
 
-const campaignsPath = 'campaigns'
-const campaignInvitesPath = 'campaignInvites'
-const campaignInvitesByCampaignPath = 'campaignInvitesByCampaign'
-const campaignMembersPath = 'campaignMembers'
-const nicknamesPath = 'nicknames'
-const userProfilesPath = 'userProfiles'
-
-const mapCampaigns = (value: unknown): Campaign[] => {
-  if (!value || typeof value !== 'object') {
-    return []
-  }
-
-  return Object.entries(value as Record<string, Omit<Campaign, 'id'>>).map(([id, campaign]) => ({
-    id,
-    ...campaign,
-  }))
-}
-
-const mapInvites = (value: unknown): CampaignInvite[] => {
-  if (!value || typeof value !== 'object') {
-    return []
-  }
-
-  return Object.entries(value as Record<string, Omit<CampaignInvite, 'id'>>).map(([id, invite]) => ({
-    id,
-    ...invite,
-  }))
-}
-
-const mapAcceptedMembershipCampaignIds = (value: unknown, userUid: string): Set<string> => {
-  if (!value || typeof value !== 'object') {
-    return new Set<string>()
-  }
-
-  return Object.entries(value as Record<string, Record<string, { status?: string }>>).reduce((accumulator, [campaignId, members]) => {
-    if (members?.[userUid]?.status === 'accepted') {
-      accumulator.add(campaignId)
-    }
-
-    return accumulator
-  }, new Set<string>())
-}
-
-const createInvitePayload = (input: {
-  campaignId: string
-  campaignName: string
-  ownerUid: string
-  targetUid: string
-  targetNickname: string
-  targetNicknameKey: string
-}): Omit<CampaignInvite, 'id'> => ({
-  campaignId: input.campaignId,
-  campaignName: input.campaignName,
-  ownerUid: input.ownerUid,
-  targetUid: input.targetUid,
-  targetNickname: input.targetNickname,
-  targetNicknameKey: input.targetNicknameKey,
-  status: 'pending',
-})
-
-const readUserByNickname = async (
-  nickname: string,
-): Promise<{ uid: string; nickname: string; nicknameKey: string }> => {
-  const nicknameKey = normalizeNickname(nickname)
-  const nicknameSnapshot = await get(ref(firebaseServices.database, `${nicknamesPath}/${nicknameKey}`))
-
-  if (!nicknameSnapshot.exists()) {
-    throw new Error('nickname-not-found')
-  }
-
-  const uid = String(nicknameSnapshot.val())
-  const profileSnapshot = await get(ref(firebaseServices.database, `${userProfilesPath}/${uid}`))
-
-  if (!profileSnapshot.exists()) {
-    throw new Error('profile-not-found')
-  }
-
-  const profile = profileSnapshot.val() as { nickname: string }
-
-  return {
-    uid,
-    nickname: profile.nickname,
-    nicknameKey,
-  }
-}
-
-const hasPendingOrAcceptedStatus = (value: unknown): boolean => {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-
-  const status = (value as { status?: string }).status
-  return status === 'pending' || status === 'accepted'
-}
-
-const mapNicknameSuggestions = async (value: unknown): Promise<string[]> => {
-  if (!value || typeof value !== 'object') {
-    return []
-  }
-
-  const entries = Object.entries(value as Record<string, string>)
-  const nicknames = await Promise.all(
-    entries.map(async ([, uid]) => {
-      const profileSnapshot = await get(ref(firebaseServices.database, `${userProfilesPath}/${uid}`))
-
-      if (!profileSnapshot.exists()) {
-        return null
-      }
-
-      const profile = profileSnapshot.val() as { nickname: string }
-      return profile.nickname
-    }),
-  )
-
-  return nicknames.filter((nickname): nickname is string => Boolean(nickname))
-}
-
+export type { Campaign, CampaignInvite } from './campaignTypes'
 export const campaignService = {
   async createCampaign(ownerUid: string, payload: CampaignPayload): Promise<string> {
     const campaignRef = push(ref(firebaseServices.database, campaignsPath))
@@ -195,6 +61,10 @@ export const campaignService = {
         role: 'owner',
         status: 'accepted',
       },
+      [`${campaignMembershipsByUserPath}/${ownerUid}/${campaignId}`]: {
+        role: 'owner',
+        status: 'accepted',
+      },
     })
 
     return campaignId
@@ -208,42 +78,34 @@ export const campaignService = {
     })
   },
   async getCampaignById(campaignId: string): Promise<Campaign | null> {
-    const snapshot = await get(ref(firebaseServices.database, `${campaignsPath}/${campaignId}`))
-
-    if (!snapshot.exists()) {
-      return null
-    }
-
-    return {
-      id: campaignId,
-      ...(snapshot.val() as Omit<Campaign, 'id'>),
-    }
+    return fetchCampaignById(campaignId)
   },
   observeUserCampaigns(userUid: string, onChange: (campaigns: Campaign[]) => void): Unsubscribe {
-    let campaigns: Campaign[] = []
-    let acceptedCampaignIds = new Set<string>()
+    let isActive = true
+    let requestId = 0
+    const membershipsRef = ref(firebaseServices.database, `${campaignMembershipsByUserPath}/${userUid}`)
+    const membershipsUnsubscribe = onValue(membershipsRef, (snapshot) => {
+      const memberships = mapMembershipsByCampaign(snapshot.val())
+      const acceptedCampaignIds = Object.entries(memberships)
+        .filter(([, membership]) => membership?.status === 'accepted')
+        .map(([campaignId]) => campaignId)
 
-    const emit = () => {
-      const visibleCampaigns = campaigns.filter(
-        (campaign) => campaign.ownerUid === userUid || acceptedCampaignIds.has(campaign.id),
-      )
+      const currentRequest = requestId + 1
+      requestId = currentRequest
 
-      onChange(visibleCampaigns)
-    }
+      void (async () => {
+        const campaigns = await Promise.all(acceptedCampaignIds.map((campaignId) => fetchCampaignById(campaignId)))
+        if (!isActive || requestId !== currentRequest) {
+          return
+        }
 
-    const campaignsUnsubscribe = onValue(ref(firebaseServices.database, campaignsPath), (snapshot) => {
-      campaigns = mapCampaigns(snapshot.val())
-      emit()
-    })
-
-    const membersUnsubscribe = onValue(ref(firebaseServices.database, campaignMembersPath), (snapshot) => {
-      acceptedCampaignIds = mapAcceptedMembershipCampaignIds(snapshot.val(), userUid)
-      emit()
+        onChange(campaigns.filter((campaign): campaign is Campaign => Boolean(campaign)))
+      })()
     })
 
     return () => {
-      campaignsUnsubscribe()
-      membersUnsubscribe()
+      isActive = false
+      membershipsUnsubscribe()
     }
   },
   async searchNicknames(search: string): Promise<string[]> {
@@ -294,6 +156,10 @@ export const campaignService = {
         role: 'player',
         status: 'pending',
       },
+      [`${campaignMembershipsByUserPath}/${targetUser.uid}/${campaignId}`]: {
+        role: 'player',
+        status: 'pending',
+      },
     })
   },
   async inviteManyByNicknames(params: InviteManyParams): Promise<void> {
@@ -313,7 +179,6 @@ export const campaignService = {
   },
   observeInvites(userUid: string, onChange: (invites: CampaignInvite[]) => void): Unsubscribe {
     const userInvitesRef = ref(firebaseServices.database, `${campaignInvitesPath}/${userUid}`)
-
     return onValue(userInvitesRef, (snapshot) => {
       const invites = mapInvites(snapshot.val())
       onChange(invites)
@@ -325,6 +190,8 @@ export const campaignService = {
       [`${campaignInvitesByCampaignPath}/${invite.campaignId}/${userUid}/status`]: 'accepted',
       [`${campaignMembersPath}/${invite.campaignId}/${userUid}/status`]: 'accepted',
       [`${campaignMembersPath}/${invite.campaignId}/${userUid}/role`]: 'player',
+      [`${campaignMembershipsByUserPath}/${userUid}/${invite.campaignId}/status`]: 'accepted',
+      [`${campaignMembershipsByUserPath}/${userUid}/${invite.campaignId}/role`]: 'player',
     })
   },
   async declineInvite(userUid: string, invite: CampaignInvite): Promise<void> {
@@ -332,6 +199,8 @@ export const campaignService = {
       [`${campaignInvitesPath}/${userUid}/${invite.campaignId}/status`]: 'declined',
       [`${campaignInvitesByCampaignPath}/${invite.campaignId}/${userUid}/status`]: 'declined',
       [`${campaignMembersPath}/${invite.campaignId}/${userUid}/status`]: 'declined',
+      [`${campaignMembershipsByUserPath}/${userUid}/${invite.campaignId}/status`]: 'declined',
+      [`${campaignMembershipsByUserPath}/${userUid}/${invite.campaignId}/role`]: 'player',
     })
   },
   async removeMember(campaignId: string, targetUid: string): Promise<void> {
@@ -339,6 +208,7 @@ export const campaignService = {
       [`${campaignMembersPath}/${campaignId}/${targetUid}`]: null,
       [`${campaignInvitesPath}/${targetUid}/${campaignId}`]: null,
       [`${campaignInvitesByCampaignPath}/${campaignId}/${targetUid}`]: null,
+      [`${campaignMembershipsByUserPath}/${targetUid}/${campaignId}`]: null,
     })
   },
 }

@@ -7,6 +7,7 @@ import { AuthLayout } from './ui/layouts/AuthLayout.tsx'
 import { useAppStore } from './store/appStore.ts'
 import { authService } from './services/firebase/authService.ts'
 import { campaignService, type CampaignInvite } from './services/firebase/campaignService.ts'
+import { userProfileService } from './services/firebase/userProfileService.ts'
 import { LoginPage } from './features/auth/LoginPage.tsx'
 import { CampaignListPage } from './features/campaigns/CampaignListPage.tsx'
 import { CampaignEditorPage } from './features/campaigns/CampaignEditorPage.tsx'
@@ -19,15 +20,22 @@ function App() {
   const isAuthResolved = useAppStore((state) => state.isAuthResolved)
   const setUser = useAppStore((state) => state.setUser)
   const setAuthResolved = useAppStore((state) => state.setAuthResolved)
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [invites, setInvites] = useState<CampaignInvite[]>([])
+  const [userNickname, setUserNickname] = useState<string | null>(null)
 
   useEffect(() => {
     const unsubscribe = authService.observeAuthState((nextUser) => {
       if (nextUser) {
         setUser({ uid: nextUser.uid, email: nextUser.email })
+        void (async () => {
+          const profile = await userProfileService.getProfileByUid(nextUser.uid)
+          setUserNickname(profile?.nickname ?? null)
+        })()
       } else {
         setUser(null)
+        setUserNickname(null)
       }
 
       setAuthResolved(true)
@@ -54,6 +62,10 @@ function App() {
 
   const handleDeclineInvite = async (userUid: string, invite: CampaignInvite) => {
     await campaignService.declineInvite(userUid, invite)
+  }
+
+  const handleProfile = () => {
+    setIsUserMenuOpen(false)
   }
 
   if (!isAuthResolved) {
@@ -86,11 +98,16 @@ function App() {
         <AppHeader
           appName={t('app.name')}
           showUserActions
+          userName={userNickname}
+          userEmail={user.email}
           pendingInvites={pendingInvites}
-          isPopoverOpen={isPopoverOpen}
-          onTogglePopover={() => setIsPopoverOpen((value) => !value)}
+          isNotificationsOpen={isNotificationsOpen}
+          isUserMenuOpen={isUserMenuOpen}
+          onToggleNotifications={() => setIsNotificationsOpen((value) => !value)}
+          onToggleUserMenu={() => setIsUserMenuOpen((value) => !value)}
           onAcceptInvite={(invite) => void handleAcceptInvite(user.uid, invite)}
           onDeclineInvite={(invite) => void handleDeclineInvite(user.uid, invite)}
+          onProfile={handleProfile}
           onSignOut={() => void authService.signOut()}
         />
       }

@@ -54,6 +54,7 @@ vi.mock('../services/firebase/userProfileService.ts', () => ({
   userProfileService: {
     registerWithEmailPassword: registerWithEmailPasswordMock,
     registerWithGoogle: registerWithGoogleMock,
+    getProfileByUid: vi.fn().mockResolvedValue({ nickname: 'Mestre' }),
   },
 }))
 
@@ -282,6 +283,9 @@ describe('App', () => {
       }),
     ).toBeInTheDocument()
 
+    await user.click(screen.getByRole('button', { name: 'Menu do usuario' }))
+    await user.click(screen.getByRole('button', { name: 'Perfil' }))
+    await user.click(screen.getByRole('button', { name: 'Menu do usuario' }))
     await user.click(screen.getByRole('button', { name: 'Sair' }))
 
     expect(signOutMock).toHaveBeenCalled()

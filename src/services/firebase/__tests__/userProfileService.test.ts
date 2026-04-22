@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const runTransactionMock = vi.fn()
 const refMock = vi.fn()
-const setMock = vi.fn()
+const updateMock = vi.fn()
 const getMock = vi.fn()
 
 const signUpWithEmailPasswordMock = vi.fn()
@@ -11,7 +11,7 @@ const signInWithGoogleMock = vi.fn()
 vi.mock('firebase/database', () => ({
   runTransaction: runTransactionMock,
   ref: refMock,
-  set: setMock,
+  update: updateMock,
   get: getMock,
 }))
 
@@ -32,7 +32,7 @@ describe('userProfileService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     refMock.mockImplementation((_: unknown, path: string) => path)
-    setMock.mockResolvedValue(undefined)
+    updateMock.mockResolvedValue(undefined)
   })
 
   it('normalizes nickname', async () => {
@@ -61,7 +61,7 @@ describe('userProfileService', () => {
     })
 
     expect(profile.nicknameKey).toBe('mestre_turbo')
-    expect(setMock).toHaveBeenCalled()
+    expect(updateMock).toHaveBeenCalled()
   })
 
   it('throws when nickname is already in use during register', async () => {
@@ -102,7 +102,7 @@ describe('userProfileService', () => {
     const profile = await userProfileService.registerWithGoogle('Google Mestre')
 
     expect(profile.nicknameKey).toBe('google_mestre')
-    expect(setMock).toHaveBeenCalled()
+    expect(updateMock).toHaveBeenCalled()
   })
 
   it('returns null when profile does not exist', async () => {

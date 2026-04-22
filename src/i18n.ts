@@ -12,6 +12,11 @@ const resources = {
         pt: 'PT',
         en: 'EN',
       },
+      user: {
+        profile: 'Perfil',
+        menuLabel: 'Menu do usuario',
+        initialFallback: 'U',
+      },
       navigation: {
         back: 'Voltar',
         breadcrumbs: 'Caminho de navegacao',
@@ -91,6 +96,11 @@ const resources = {
       lang: {
         pt: 'PT',
         en: 'EN',
+      },
+      user: {
+        profile: 'Profile',
+        menuLabel: 'User menu',
+        initialFallback: 'U',
       },
       navigation: {
         back: 'Back',
